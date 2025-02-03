@@ -1,64 +1,59 @@
-const amount = document.getElementById('amount');
-const fromCurrency = document.getElementById('from');
-const toCurrency = document.getElementById('to');
-const convertBtn = document.getElementById('convert-btn');
-const resultText = document.getElementById('result-text');
-
 const API_KEY = '8e6c9e834230aa60319a433e'; // Your API key
-const API_URL = `https://v6.exchangerate-api.com/v6/${API_KEY}/latest/USD`;
+const BASE_URL = `https://v6.exchangerate-api.com/v6/${API_KEY}/latest`;
 
-let currencies = [];
+const dropdowns = document.querySelectorAll(".dropdown select");
+const btn = document.querySelector("form button");
+const fromCurr = document.querySelector(".from select");
+const toCurr = document.querySelector(".to select");
+const msg = document.querySelector(".msg");
 
-// Fetch currencies from API
-async function fetchCurrencies() {
-  try {
-    const response = await fetch(API_URL);
-    const data = await response.json();
-    currencies = Object.keys(data.conversion_rates);
-    populateDropdowns();
-  } catch (error) {
-    console.error('Error fetching currencies:', error);
+for (let select of dropdowns) {
+  for (currCode in countryList) {
+    let newOption = document.createElement("option");
+    newOption.innerText = currCode;
+    newOption.value = currCode;
+    if (select.name === "from" && currCode === "USD") {
+      newOption.selected = "selected";
+    } else if (select.name === "to" && currCode === "INR") {
+      newOption.selected = "selected";
+    }
+    select.append(newOption);
   }
-}
 
-// Populate dropdowns with currencies
-function populateDropdowns() {
-  currencies.forEach(currency => {
-    const option1 = document.createElement('option');
-    option1.value = currency;
-    option1.textContent = currency;
-    fromCurrency.appendChild(option1);
-
-    const option2 = document.createElement('option');
-    option2.value = currency;
-    option2.textContent = currency;
-    toCurrency.appendChild(option2);
+  select.addEventListener("change", (evt) => {
+    updateFlag(evt.target);
   });
 }
 
-// Convert currency
-async function convertCurrency() {
-  const from = fromCurrency.value;
-  const to = toCurrency.value;
-  const amountValue = amount.value;
-
-  if (!amountValue || amountValue < 0) {
-    alert('Please enter a valid amount');
-    return;
+const updateExchangeRate = async () => {
+  let amount = document.querySelector(".amount input");
+  let amtVal = amount.value;
+  if (amtVal === "" || amtVal < 1) {
+    amtVal = 1;
+    amount.value = "1";
   }
+  const URL = `${BASE_URL}/${fromCurr.value}`;
+  let response = await fetch(URL);
+  let data = await response.json();
+  let rate = data.conversion_rates[toCurr.value];
 
-  try {
-    const response = await fetch(`https://v6.exchangerate-api.com/v6/${API_KEY}/pair/${from}/${to}/${amountValue}`);
-    const data = await response.json();
-    const result = data.conversion_result;
-    resultText.textContent = `Result: ${result.toFixed(2)} ${to}`;
-  } catch (error) {
-    console.error('Error converting currency:', error);
-  }
-}
+  let finalAmount = amtVal * rate;
+  msg.innerText = `${amtVal} ${fromCurr.value} = ${finalAmount.toFixed(2)} ${toCurr.value}`;
+};
 
-// Event Listeners
-convertBtn.addEventListener('click', convertCurrency);
+const updateFlag = (element) => {
+  let currCode = element.value;
+  let countryCode = countryList[currCode];
+  let newSrc = `https://flagsapi.com/${countryCode}/flat/64.png`;
+  let img = element.parentElement.querySelector("img");
+  img.src = newSrc;
+};
 
-// Initialize
-fetchCurrencies();
+btn.addEventListener("click", (evt) => {
+  evt.preventDefault();
+  updateExchangeRate();
+});
+
+window.addEventListener("load", () => {
+  updateExchangeRate();
+});
